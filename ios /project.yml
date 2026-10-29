@@ -1,0 +1,45 @@
+name: LYNKO
+options:
+  bundleIdPrefix: com.lynko
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "2.2"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  LYNKO:
+    type: application
+    platform: iOS
+    sources: [LYNKO]
+    info:
+      path: LYNKO/Info.plist
+      properties:
+        CFBundleDisplayName: LYNKO
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lynko.keyboard
+    dependencies:
+      - target: LYNKOKeyboard
+  LYNKOKeyboard:
+    type: app-extension
+    platform: iOS
+    sources: [LYNKOKeyboard]
+    info:
+      path: LYNKOKeyboard/Info.plist
+      properties:
+        CFBundleDisplayName: LYNKO
+        NSExtension:
+          NSExtensionAttributes:
+            IsASCIICapable: true
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            RequestsOpenAccess: false
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lynko.keyboard.ext
