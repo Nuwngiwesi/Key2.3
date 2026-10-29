@@ -1,0 +1,71 @@
+plugins { id 'com.android.application' version '8.5.2' }
+
+// logo.jpg (ඔයාගේ image එක) repo root එකේ තිබුණොත් app icon + keyboard theme එකට use වෙනවා
+def hasLogo = file('logo.jpg').exists()
+
+// GitHub Actions දාන values: build number (auto update වලට) සහ repo නම (update check එකට)
+def runNo  = System.getenv('GITHUB_RUN_NUMBER')
+def ghRepo = System.getenv('GITHUB_REPOSITORY') ?: 'none'
+
+// Same signing key every build, otherwise Android refuses to update the installed app.
+// The workflow creates lynko.jks from lynko.keystore.b64 before building.
+def ks = file('lynko.jks')
+
+android {
+    namespace 'com.lynko.keyboard'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.lynko.keyboard'
+        minSdk 24
+        targetSdk 34
+        versionCode(runNo ? 1000 + runNo.toInteger() : 3)
+        versionName(runNo ? "2.2.${runNo}".toString() : '2.2')
+        manifestPlaceholders = [appIcon: hasLogo ? '@drawable/logo' : '@android:drawable/sym_def_app_icon',
+                                ghRepo : ghRepo]
+    }
+    signingConfigs {
+        lynko {
+            if (ks.exists()) {
+                storeFile ks
+                storePassword 'lynko123'
+                keyAlias 'lynko'
+                keyPassword 'lynko123'
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            if (ks.exists()) signingConfig signingConfigs.lynko
+        }
+    }
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDir layout.buildDirectory.dir('flatsrc')
+            res.srcDir layout.buildDirectory.dir('flatres')
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'   // FileProvider (installing the downloaded update)
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+// folders නැතිව files තියෙන නිසා build වෙද්දී හරි තැන්වලට copy කරනවා
+tasks.register('flatSrc', Copy) {
+    from('.') { include '*.java' }
+    into layout.buildDirectory.dir('flatsrc')
+}
+tasks.register('flatRes', Copy) {
+    from('method.xml') { into 'xml' }
+    from('file_paths.xml') { into 'xml' }
+    from('logo.jpg') { into 'drawable-nodpi' }
+    into layout.buildDirectory.dir('flatres')
+}
+tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn 'flatSrc', 'flatRes' }
